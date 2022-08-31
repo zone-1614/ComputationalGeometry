@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.10)
+project("ComputationalGeometry")
+set(CMAKE_CXX_STANDARD 17)
+
+find_package(CGAL)
+
+add_subdirectory("CH0_Preface")
+add_subdirectory("CH1_Introduction")
