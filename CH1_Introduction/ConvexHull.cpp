@@ -1,6 +1,7 @@
 #include <iostream>
 #include <CGAL/Simple_cartesian.h>
 #include <vector>
+#include <algorithm>
 
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_2 = Kernel::Point_2;
@@ -29,7 +30,7 @@ int main() {
       for (int k = 0; k < ps.size(); k++) {
         if (k == j || k == i) continue;
         Point_2 r = ps[k];
-        std::cout << p << " " << q << " " << r << " " << CGAL::orientation(p, q, r) << std::endl;
+        // std::cout << p << " " << q << " " << r << " " << CGAL::orientation(p, q, r) << std::endl;
         if (CGAL::orientation(p, q, r) != CGAL::LEFT_TURN) {
           valid = false;
         }
@@ -40,8 +41,16 @@ int main() {
     }
   }
 
-  for (int i = 0; i < ss.size(); i++) {
-    std::cout << ss[i] << std::endl;
+  Segments convex_hull;
+  convex_hull.push_back(ss.back());
+  ss.pop_back();
+  while (!ss.empty()) {
+    auto start = convex_hull.back().end();
+    auto segment = std::find_if(ss.begin(), ss.end(), [&start](auto s) { return s.start() == start; });
+    convex_hull.push_back(*segment);
+    ss.erase(segment);
   }
-    
+  for (int i = 0; i < convex_hull.size(); i++) {
+    std::cout << convex_hull[i] << std::endl;
+  }
 }
