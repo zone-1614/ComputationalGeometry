@@ -1,0 +1,1 @@
+I learn Computational Geometry only for Computer Graphics😁. Chapter 6, 10, 16 describe techniques for 2d graphic, typical questions involve the intersection of primitives, determining the primitive pointed to the mouse or determining the subset of primitives that lies within a particular region.
