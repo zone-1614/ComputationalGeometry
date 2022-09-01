@@ -20,6 +20,7 @@ int main() {
   ps.push_back(Point_2(6, 4));
   Segments ss;
 
+  // for each segment
   for (int i = 0; i < ps.size(); i++) {
     Point_2 p = ps[i];
     for (int j = 0; j < ps.size(); j++) {
@@ -31,6 +32,7 @@ int main() {
         if (k == j || k == i) continue;
         Point_2 r = ps[k];
         // std::cout << p << " " << q << " " << r << " " << CGAL::orientation(p, q, r) << std::endl;
+        // all points should lie in the left side of segment pq.
         if (CGAL::orientation(p, q, r) != CGAL::LEFT_TURN) {
           valid = false;
         }
