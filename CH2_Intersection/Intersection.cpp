@@ -19,10 +19,9 @@ using Result = std::map<Point, Segments>;
 
 double sweep_line;
 
-Result FindIntersections(Segments&);
+void FindIntersections(Segments&);
 void HandleEventPoint(Point&, Segments& );
-void FindNewEvent(const Segment&, const Segment&, const Point&);
-double x_by_sweep_line(const Segment& s);
+void FindNewIntersectionPoint(const Segment&, const Segment&, const Point&);
 
 // event point compare function. 
 auto compareEventPoint = [](const Point& p1, const Point& p2) -> bool {
@@ -56,13 +55,19 @@ int main() {
   segs.push_back(Segment(Point(2, 2.5), Point(3, 1.5)));
   segs.push_back(Segment(Point(3, 2), Point(2, 1)));
   segs.push_back(Segment(Point(1.5, 8), Point(2, 0)));
-  auto r = FindIntersections(segs);
+
+  FindIntersections(segs);
   
-  for (auto& entry : r) {
+  for (auto& entry : result) {
     std::cout << "point: " << entry.first << ", size of segs: " << entry.second.size() << std::endl;
   }
 }
 
+/**
+ * @brief Get x-axis by the global variable sweep_line
+ * @param s The segment which need to get x-axis
+ * @return double
+ */
 double x_by_sweep_line(const Segment& s) {
   if (s.is_vertical()) {
     return s.start().x();
@@ -73,7 +78,11 @@ double x_by_sweep_line(const Segment& s) {
   return y;
 }
 
-Result FindIntersections(Segments& segments) {
+/**
+ * @brief Find all intersection points in the input segment set. 
+ * @param segments The segment set. 
+ */
+void FindIntersections(Segments& segments) {
   // insert all endpoints into q. 
   for (Segment& sg : segments) {
     q.push(sg.start());
@@ -92,9 +101,14 @@ Result FindIntersections(Segments& segments) {
 
     HandleEventPoint(p, segments);
   }
-  return result;
 }
 
+/**
+ * @brief Determine whether the event point an intersection point and find the related event point.
+ * 
+ * @param p The event point. 
+ * @param segments The segment set. 
+ */
 void HandleEventPoint(Point& p, Segments& segments) {
   Segments U, L, I;
   for (Segment& sg : segments) {
@@ -113,7 +127,7 @@ void HandleEventPoint(Point& p, Segments& segments) {
   }
 
   if (U.size() + L.size() + I.size() > 1) {
-    // find an intersection point.
+    // find an intersection point. Store the intersection point and all intersection segments together in result. 
     Segments s;
     s.insert(s.end(), U.begin(), U.end());
     s.insert(s.end(), L.begin(), L.end());
@@ -125,14 +139,16 @@ void HandleEventPoint(Point& p, Segments& segments) {
     status.erase(seg);
   for (Segment& seg : I)
     status.erase(seg);
+
   // insert segments in U
   for (Segment& seg : U)
     status.insert(seg);
+  
   // inverted insert segments in I
   for (auto rit = I.rbegin(); rit != I.rend(); rit++) 
     status.insert(*rit);
     
-  if (U.size() + I.size() == 0) {
+  if (U.size() + I.size() == 0) { // event point is the lower endpoint of a segment. 
     // find left and right neighbour. 
     Segment sl, sr;
     bool find_left = false, find_right = false;
@@ -151,8 +167,8 @@ void HandleEventPoint(Point& p, Segments& segments) {
       }
     }
     if (find_left && find_right)
-      FindNewEvent(sl, sr, p);
-  } else {
+      FindNewIntersectionPoint(sl, sr, p);
+  } else { // event point is a intersection point. 
     Segments U_cup_C;
     U_cup_C.insert(U_cup_C.begin(), U.begin(), U.end());
     U_cup_C.insert(U_cup_C.begin(), I.begin(), I.end());
@@ -160,6 +176,7 @@ void HandleEventPoint(Point& p, Segments& segments) {
     Segment sl, sll;
     Segment sr, srr;
     bool left = false, right = false; // need to find new event on left/right side. 
+    // In status, find first segment in U cup C (assigned sl), and find the left neighbour of sl (assigned sll). 
     for (auto it = status.begin(); it != status.end(); it++) {
       if (std::find(U_cup_C.begin(), U_cup_C.end(), *it) != U_cup_C.end()) {
         sl = *it;
@@ -170,6 +187,7 @@ void HandleEventPoint(Point& p, Segments& segments) {
         }
       }
     }
+    // In status, find first segment in U cup C (assigned sr), and find the right neighbour of sr (assigned srr). 
     for (auto rit = status.rbegin(); rit != status.rend(); rit++) {
       if (std::find(U_cup_C.begin(), U_cup_C.end(), *rit) != U_cup_C.end()) {
         sr = *rit;
@@ -181,20 +199,25 @@ void HandleEventPoint(Point& p, Segments& segments) {
       }
     }
     if (left)
-      FindNewEvent(sll, sl, p);
+      FindNewIntersectionPoint(sll, sl, p);
     if (right)
-      FindNewEvent(sr, srr, p);
+      FindNewIntersectionPoint(sr, srr, p);
   }
 }
 
-void FindNewEvent(const Segment& s1, const Segment& s2, const Point& p) {
+/**
+ * @brief Find the intersection point by the input segments, and determine whether push it into q by the current event point p. 
+ * 
+ * @param s1 segment 1
+ * @param s2 segment 2
+ * @param p the current event point. 
+ */
+void FindNewIntersectionPoint(const Segment& s1, const Segment& s2, const Point& p) {
   // intersection point between two segment. 
   auto intersect = [&]() -> std::optional<Point> {
     auto i = CGAL::intersection(s1, s2);
     if (i.has_value()) {
-      auto v = i.value();
-      auto p = boost::get<Point>(v);
-      return p;
+      return boost::get<Point>(i.value());
     } else {
       return std::nullopt;
     }
@@ -202,7 +225,7 @@ void FindNewEvent(const Segment& s1, const Segment& s2, const Point& p) {
   auto ans = intersect();
 
   if (ans.has_value()) {
-    auto v = ans.value(); // v is intersection point. 
+    auto v = ans.value(); // v is the intersection point. 
     
     if (/* if v not in q */ std::find(__q.begin(), __q.end(), v) == __q.end()
     && /* v is lower than p */ v.y() < p.y()) {
